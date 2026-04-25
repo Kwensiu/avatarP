@@ -1021,9 +1021,23 @@
     };
 
     const ctx = els.canvas.getContext("2d");
+    const EDIT_IMAGE_MAX_SIDE = 2048;
+
+    function imageWidth(image) {
+      return image ? (image.naturalWidth || image.width || 0) : 0;
+    }
+
+    function imageHeight(image) {
+      return image ? (image.naturalHeight || image.height || 0) : 0;
+    }
+
+    function revokeObjectUrl(url) {
+      if (url) URL.revokeObjectURL(url);
+    }
 
     const state = {
       image: null,
+      sourceImage: null,
       imageName: "avatar",
       panX: 0,
       panY: 0,
@@ -1046,6 +1060,10 @@
       startCenterX: 0,
       startCenterY: 0,
       avatarDataUrl: "",
+      avatarObjectUrl: "",
+      renderRequestId: 0,
+      previewRequestId: 0,
+      overlayFillStyle: "rgba(15,23,42,0.28)",
       theme: localStorage.getItem("avatarToolTheme") || "light",
     };
 
@@ -1055,13 +1073,19 @@
       els.themeBtn.textContent = isDark ? "☀" : "☾";
       els.themeBtn.setAttribute("aria-label", isDark ? "切换浅色" : "切换深色");
       els.themeBtn.title = isDark ? "浅色" : "深色";
+      updateOverlayFillStyle();
+    }
+
+
+    function updateOverlayFillStyle() {
+      state.overlayFillStyle = state.theme === "dark" ? "rgba(0,0,0,0.48)" : "rgba(15,23,42,0.28)";
     }
 
     function toggleTheme() {
       state.theme = state.theme === "dark" ? "light" : "dark";
       localStorage.setItem("avatarToolTheme", state.theme);
       initTheme();
-      draw();
+      requestDraw();
     }
 
     function toast(message) {
@@ -1092,7 +1116,7 @@
       return Math.max(min, Math.min(max, n));
     }
 
-    function route() {
+    async function route() {
       const hash = location.hash || "#editor";
       if (hash === "#preview") {
         if (!state.image && !state.avatarDataUrl) {
@@ -1100,7 +1124,7 @@
           location.hash = "#editor";
           return;
         }
-        updateAvatarDataUrl();
+        await updateAvatarDataUrl();
         renderPlatforms();
         els.editorPage.classList.remove("active");
         els.previewPage.classList.add("active");
@@ -1114,11 +1138,14 @@
     function resizeCanvas() {
       const rect = els.canvasWrap.getBoundingClientRect();
       const size = Math.max(280, Math.floor(rect.width));
+      const previousCropSize = state.cropSize;
+      const nextCropSize = Math.floor(size * 0.72);
       state.canvasW = size;
       state.canvasH = size;
-      state.cropSize = Math.floor(size * 0.72);
+      scalePanForCropSize(state, previousCropSize, nextCropSize);
+      state.cropSize = nextCropSize;
 
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       els.canvas.width = Math.floor(size * dpr);
       els.canvas.height = Math.floor(size * dpr);
       els.canvas.style.width = size + "px";
@@ -1129,13 +1156,23 @@
         computeBaseScale();
       }
 
-      draw();
+      requestDraw();
     }
 
     function computeBaseScale() {
       if (!state.image) return;
-      const minSide = Math.min(state.image.naturalWidth, state.image.naturalHeight);
+      const minSide = Math.min(imageWidth(state.image), imageHeight(state.image));
       state.baseScale = state.cropSize / minSide;
+    }
+
+    function scalePanForCropSize(targetState, previousCropSize, nextCropSize) {
+      if (!targetState.image || !previousCropSize || !nextCropSize || previousCropSize === nextCropSize) {
+        return;
+      }
+
+      const ratio = nextCropSize / previousCropSize;
+      targetState.panX *= ratio;
+      targetState.panY *= ratio;
     }
 
     function resetTransform() {
@@ -1146,14 +1183,20 @@
       els.zoomRange.value = "1";
       els.rotateRange.value = "0";
       updateControlText();
-      draw();
+      requestDraw();
       updateAvatarDataUrl();
     }
 
     function clearAvatar() {
+      if (state.sourceImage !== state.image) closeImageBitmap(state.sourceImage);
+      closeImageBitmap(state.image);
+      revokeObjectUrl(state.avatarObjectUrl);
       state.image = null;
+      state.sourceImage = null;
       state.imageName = "avatar";
       state.avatarDataUrl = "";
+      state.avatarObjectUrl = "";
+      state.previewRequestId++;
       state.dragging = false;
       state.gestureMode = "none";
       state.panX = 0;
@@ -1169,7 +1212,7 @@
       els.platformGrid.innerHTML = "";
       localStorage.removeItem("avatarToolLastPreview");
       updateControlText();
-      draw();
+      requestDraw();
     }
 
     function clearStartupCache() {
@@ -1180,6 +1223,15 @@
     function updateControlText() {
       els.zoomText.textContent = Math.round(state.zoom * 100) + "%";
       els.rotateText.textContent = Math.round(state.rotate) + "°";
+    }
+
+
+    function requestDraw() {
+      if (state.renderRequestId) return;
+      state.renderRequestId = requestAnimationFrame(() => {
+        state.renderRequestId = 0;
+        draw();
+      });
     }
 
     function draw() {
@@ -1205,8 +1257,8 @@
       ctx.scale(scale, scale);
       ctx.drawImage(
         state.image,
-        -state.image.naturalWidth / 2,
-        -state.image.naturalHeight / 2
+        -imageWidth(state.image) / 2,
+        -imageHeight(state.image) / 2
       );
       ctx.restore();
 
@@ -1222,10 +1274,7 @@
 
       ctx.save();
 
-      ctx.fillStyle =
-        getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#090d18"
-          ? "rgba(0,0,0,0.48)"
-          : "rgba(15,23,42,0.28)";
+      ctx.fillStyle = state.overlayFillStyle;
 
       ctx.beginPath();
       ctx.rect(0, 0, w, h);
@@ -1305,11 +1354,13 @@
       );
       octx.rotate((state.rotate * Math.PI) / 180);
       const scale = state.baseScale * state.zoom * k;
-      octx.scale(scale, scale);
+      const outputImage = state.sourceImage || state.image;
+      const sourceScale = imageWidth(state.image) / imageWidth(outputImage);
+      octx.scale(scale * sourceScale, scale * sourceScale);
       octx.drawImage(
-        state.image,
-        -state.image.naturalWidth / 2,
-        -state.image.naturalHeight / 2
+        outputImage,
+        -imageWidth(outputImage) / 2,
+        -imageHeight(outputImage) / 2
       );
       octx.restore();
 
@@ -1322,21 +1373,29 @@
       return "png";
     }
 
-    function getDataUrl() {
-      const out = renderCroppedCanvas();
-      if (!out) return "";
-      const mime = els.formatSelect.value || "image/png";
-      if (mime === "image/png") return out.toDataURL(mime);
-      return out.toDataURL(mime, 0.92);
+    function canvasToBlob(canvas, mime, quality) {
+      return new Promise((resolve) => {
+        canvas.toBlob(resolve, mime, quality);
+      });
     }
 
-    function updateAvatarDataUrl() {
-      if (!state.image) return;
-      state.avatarDataUrl = getDataUrl();
+    async function updateAvatarDataUrl() {
+      if (!state.image) return "";
 
-      if (state.avatarDataUrl) {
-        els.bigAvatar.innerHTML = `<img alt="头像" src="${state.avatarDataUrl}">`;
-      }
+      const requestId = ++state.previewRequestId;
+      const out = renderCroppedCanvas();
+      if (!out) return "";
+
+      const mime = els.formatSelect.value || "image/png";
+      const quality = mime === "image/png" ? undefined : 0.92;
+      const blob = await canvasToBlob(out, mime, quality);
+      if (!blob || requestId !== state.previewRequestId) return state.avatarDataUrl;
+
+      revokeObjectUrl(state.avatarObjectUrl);
+      state.avatarObjectUrl = URL.createObjectURL(blob);
+      state.avatarDataUrl = state.avatarObjectUrl;
+      els.bigAvatar.innerHTML = `<img alt="头像" src="${state.avatarDataUrl}">`;
+      return state.avatarDataUrl;
     }
 
     function saveAvatar() {
@@ -1372,7 +1431,56 @@
       }, mime, quality);
     }
 
-    function loadFile(file) {
+    async function decodeImageFile(file) {
+      if ("createImageBitmap" in window) {
+        try {
+          return await createImageBitmap(file, { imageOrientation: "from-image" });
+        } catch (error) {
+          console.warn("createImageBitmap failed, falling back to Image", error);
+        }
+      }
+
+      return new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error("image decode failed"));
+        };
+        img.src = objectUrl;
+      });
+    }
+
+    function createDownsampledImage(image) {
+      const width = imageWidth(image);
+      const height = imageHeight(image);
+      const maxSide = Math.max(width, height);
+      if (!width || !height || maxSide <= EDIT_IMAGE_MAX_SIDE) {
+        return image;
+      }
+
+      const ratio = EDIT_IMAGE_MAX_SIDE / maxSide;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      const canvasCtx = canvas.getContext("2d");
+      canvasCtx.imageSmoothingEnabled = true;
+      canvasCtx.imageSmoothingQuality = "high";
+      canvasCtx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas;
+    }
+
+    function closeImageBitmap(image) {
+      if (typeof ImageBitmap !== "undefined" && image instanceof ImageBitmap) {
+        image.close();
+      }
+    }
+
+    async function loadFile(file) {
       if (!file || !file.type.startsWith("image/")) {
         toast("请选择图片");
         return;
@@ -1380,19 +1488,25 @@
 
       state.imageName = file.name || "avatar";
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          state.image = img;
-          computeBaseScale();
-          resetTransform();
-          toast("已加载");
-        };
-        img.onerror = () => toast("读取失败");
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
+      try {
+        const sourceImage = await decodeImageFile(file);
+        const editImage = createDownsampledImage(sourceImage);
+
+        if (state.sourceImage !== state.image) closeImageBitmap(state.sourceImage);
+        closeImageBitmap(state.image);
+        revokeObjectUrl(state.avatarObjectUrl);
+
+        state.sourceImage = sourceImage;
+        state.image = editImage;
+        state.avatarDataUrl = "";
+        state.avatarObjectUrl = "";
+        computeBaseScale();
+        resetTransform();
+        toast("已加载");
+      } catch (error) {
+        console.error(error);
+        toast("读取失败");
+      }
     }
 
     function pointFromTouch(touch) {
@@ -1498,7 +1612,7 @@
         state.panX = state.startPanX + center.x - state.startCenterX;
         state.panY = state.startPanY + center.y - state.startCenterY;
         syncControlValues();
-        draw();
+        requestDraw();
         return;
       }
 
@@ -1512,7 +1626,7 @@
       state.panY += point.y - state.lastY;
       state.lastX = point.x;
       state.lastY = point.y;
-      draw();
+      requestDraw();
     }
 
     function endDrag(e) {
@@ -1538,7 +1652,7 @@
       state.zoom = clamp(state.zoom + delta, 0.5, 4);
       els.zoomRange.value = state.zoom.toFixed(2);
       updateControlText();
-      draw();
+      requestDraw();
       clearTimeout(onWheel.timer);
       onWheel.timer = setTimeout(updateAvatarDataUrl, 120);
     }
@@ -1801,7 +1915,7 @@
     els.zoomRange.addEventListener("input", () => {
       state.zoom = parseFloat(els.zoomRange.value);
       updateControlText();
-      draw();
+      requestDraw();
     });
 
     els.zoomRange.addEventListener("change", updateAvatarDataUrl);
@@ -1809,7 +1923,7 @@
     els.rotateRange.addEventListener("input", () => {
       state.rotate = parseFloat(els.rotateRange.value);
       updateControlText();
-      draw();
+      requestDraw();
     });
 
     els.rotateRange.addEventListener("change", updateAvatarDataUrl);
@@ -1826,8 +1940,9 @@
         openCropModal();
         return;
       }
-      updateAvatarDataUrl();
-      location.hash = "#preview";
+      updateAvatarDataUrl().then(() => {
+        location.hash = "#preview";
+      });
     });
 
     els.canvas.addEventListener("mousedown", startDrag);
