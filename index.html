@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>头像裁切预览工具</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --bg2: #ffffff;
+      --text: #121826;
+      --muted: #6b7280;
+      --line: rgba(17, 24, 39, 0.1);
+      --card: rgba(255, 255, 255, 0.78);
+      --card-solid: #ffffff;
+      --primary: #4f46e5;
+      --primary2: #7c3aed;
+      --danger: #ef4444;
+      --shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+      --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 24px;
+      --radius2: 16px;
+      --input: #ffffff;
+      --checker1: #e5e7eb;
+      --checker2: #f9fafb;
+    }
+
+    [data-theme="dark"] {
+      --bg: #090d18;
+      --bg2: #101625;
+      --text: #f8fafc;
+      --muted: #9ca3af;
+      --line: rgba(255, 255, 255, 0.11);
+      --card: rgba(17, 24, 39, 0.76);
+      --card-solid: #111827;
+      --primary: #818cf8;
+      --primary2: #c084fc;
+      --danger: #fb7185;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --shadow-soft: 0 10px 35px rgba(0, 0, 0, 0.22);
+      --input: #0f172a;
+      --checker1: #1f2937;
+      --checker2: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family:
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "PingFang SC",
+        "Hiragino Sans GB",
+        "Microsoft YaHei",
+        sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.22), transparent 34%),
+        radial-gradient(circle at top right, rgba(236, 72, 153, 0.16), transparent 32%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button,
+    input,
+    select {
+      font-family: inherit;
+    }
+
+    .app {
+      width: min(1240px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      background:
+        linear-gradient(135deg, var(--primary), var(--primary2));
+      box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .logo::before {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      left: 9px;
+      top: 9px;
+    }
+
+    .logo::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      transform: rotate(45deg);
+      right: 8px;
+      bottom: 11px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 15px;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: 0.18s ease;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      text-decoration: none;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-soft);
+      border-color: rgba(99, 102, 241, 0.35);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.primary {
+      border-color: transparent;
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      box-shadow: 0 14px 32px rgba(79, 70, 229, 0.25);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+    }
+
+    .btn.small {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      margin-bottom: 20px;
+    }
+
+    .hero h2 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 5vw, 44px);
+      letter-spacing: -0.05em;
+      line-height: 1.05;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 820px;
+    }
+
+    .privacy {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(34, 197, 94, 0.22);
+      background: rgba(34, 197, 94, 0.08);
+      color: #16a34a;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    [data-theme="dark"] .privacy {
+      color: #86efac;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) 390px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    .upload-zone {
+      border: 1.5px dashed rgba(99, 102, 241, 0.42);
+      background: rgba(99, 102, 241, 0.06);
+      border-radius: 20px;
+      padding: 22px;
+      text-align: center;
+      margin-bottom: 18px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.11);
+      transform: translateY(-1px);
+    }
+
+    .upload-zone strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .upload-zone span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      min-height: 280px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(45deg, var(--checker1) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--checker1) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--checker1) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--checker1) 75%),
+        var(--checker2);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+      touch-action: none;
+    }
+
+    canvas#editorCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    canvas#editorCanvas:active {
+      cursor: grabbing;
+    }
+
+    .empty-hint {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      pointer-events: none;
+      padding: 24px;
+    }
+
+    .empty-hint div {
+      max-width: 320px;
+      line-height: 1.7;
+    }
+
+    .controls {
+      display: grid;
+      gap: 15px;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--input);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 11px 12px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: rgba(99, 102, 241, 0.65);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .avatar-preview-main {
+      display: grid;
+      place-items: center;
+      padding: 6px 0 14px;
+    }
+
+    .big-avatar {
+      width: min(220px, 68vw);
+      height: min(220px, 68vw);
+      border-radius: 999px;
+      background: var(--input);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .big-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .hint-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 14px;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .preview-toolbar h2 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 38px);
+      letter-spacing: -0.04em;
+    }
+
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .platform-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--card);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .platform-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .platform-head strong {
+      font-size: 15px;
+    }
+
+    .platform-head span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mock {
+      padding: 18px;
+      min-height: 230px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.2), transparent);
+    }
+
+    [data-theme="dark"] .mock {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+    }
+
+    .avatar {
+      display: block;
+      object-fit: cover;
+      background: linear-gradient(135deg, #c7d2fe, #fbcfe8);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    .circle {
+      border-radius: 999px;
+    }
+
+    .rounded {
+      border-radius: 12px;
+    }
+
+    .line {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(107, 114, 128, 0.18);
+    }
+
+    .line.short {
+      width: 46%;
+    }
+
+    .line.mid {
+      width: 66%;
+    }
+
+    .line.long {
+      width: 86%;
+    }
+
+    .chat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .chat-row:last-child {
+      border-bottom: 0;
+    }
+
+    .grow {
+      flex: 1;
+      display: grid;
+      gap: 8px;
+    }
+
+    .time-dot {
+      width: 48px;
+      display: grid;
+      gap: 7px;
+      justify-items: end;
+    }
+
+    .badge {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #ef4444;
+    }
+
+    .profile-cover {
+      height: 74px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 28% 20%, rgba(255,255,255,0.55), transparent 25%),
+        linear-gradient(135deg, rgba(99,102,241,0.75), rgba(236,72,153,0.65));
+      margin-bottom: -34px;
+    }
+
+    .profile-body {
+      padding: 0 12px 12px;
+    }
+
+    .profile-body .avatar {
+      box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+      border: 4px solid var(--card-solid);
+    }
+
+    .stats {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .stat {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .ig-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-top: 18px;
+    }
+
+    .ig-cell {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background: rgba(107, 114, 128, 0.16);
+    }
+
+    .discord-card {
+      border-radius: 20px;
+      overflow: hidden;
+      background: rgba(88, 101, 242, 0.12);
+      border: 1px solid rgba(88, 101, 242, 0.22);
+    }
+
+    .discord-banner {
+      height: 72px;
+      background: linear-gradient(135deg, #5865f2, #8b5cf6);
+    }
+
+    .discord-inner {
+      padding: 0 16px 16px;
+      margin-top: -30px;
+    }
+
+    .github-box {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .video-profile {
+      text-align: center;
+    }
+
+    .video-profile .avatar {
+      margin: 0 auto 12px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .video-tabs {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .video-tile {
+      aspect-ratio: 3 / 4;
+      border-radius: 12px;
+      background: rgba(107, 114, 128, 0.16);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 12px 16px;
+      border-radius: 999px;
+      color: white;
+      background: rgba(17, 24, 39, 0.88);
+      box-shadow: var(--shadow);
+      transition: 0.22s ease;
+      z-index: 50;
+      font-size: 14px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side-stack {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .platform-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        width: min(100% - 22px, 1240px);
+        padding-top: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .hero,
+      .panel {
+        border-radius: 20px;
+      }
+
+      .hero {
+        padding: 18px;
+      }
+
+      .panel-header,
+      .panel-body {
+        padding: 16px;
+      }
+
+      .side-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .platform-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mock {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>头像裁切预览工具</h1>
+          <p>本地裁切头像，并模拟多个平台展示效果</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="themeBtn" type="button">切换深色</button>
+        <a class="btn" href="#editor" id="goEditorBtn">编辑头像</a>
+        <a class="btn primary" href="#preview" id="goPreviewBtn">预览效果</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="page active" id="editorPage">
+        <section class="hero">
+          <h2>裁出一个真正适合到处使用的头像</h2>
+          <p>
+            上传本地图片后，可以通过拖动、缩放、旋转调整头像位置。点击“预览效果”后，可查看头像在聊天列表、个人主页、评论区等常见场景中的展示效果。
+          </p>
+          <div class="privacy">
+            隐私提示：所有图片仅在你的浏览器本地处理，不会上传到服务器。该页面可直接部署到 GitHub Pages。
+          </div>
+        </section>
+
+        <section class="layout">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>头像裁切</h3>
+              <button class="btn small" id="resetBtn" type="button">重置</button>
+            </div>
+            <div class="panel-body">
+              <label class="upload-zone" id="uploadZone" for="fileInput">
+                <strong>点击选择头像图片</strong>
+                <span>支持 PNG、JPG、WebP、GIF 静态首帧等常见图片。也可以拖拽图片到这里。</span>
+              </label>
+              <input id="fileInput" type="file" accept="image/*" />
+
+              <div class="canvas-wrap" id="canvasWrap">
+                <canvas id="editorCanvas"></canvas>
+                <div class="empty-hint" id="emptyHint">
+                  <div>
+                    请先选择一张图片。<br />
+                    选择后可在此区域拖动图片位置，滚轮或下方滑杆可缩放。
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="side-stack">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>实时预览</h3>
+              </div>
+              <div class="panel-body">
+                <div class="avatar-preview-main">
+                  <div class="big-avatar" id="bigAvatar">暂无头像</div>
+                </div>
+
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="formatSelect">保存格式</label>
+                    <select id="formatSelect">
+                      <option value="image/png">PNG</option>
+                      <option value="image/jpeg">JPG</option>
+                      <option value="image/webp">WebP</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="sizeInput">导出尺寸，可留空</label>
+                    <input id="sizeInput" type="number" min="64" max="4096" placeholder="默认实际裁切大小" />
+                  </div>
+                </div>
+
+                <div class="action-grid">
+                  <button class="btn primary" id="saveBtn" type="button">保存头像</button>
+                  <button class="btn" id="previewBtn" type="button">预览效果</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>调整</h3>
+              </div>
+              <div class="panel-body">
+                <div class="controls">
+                  <div class="control">
+                    <div class="control-row">
+                      <span>缩放</span>
+                      <span id="zoomText">100%</span>
+                    </div>
+                    <input id="zoomRange" type="range" min="0.5" max="4" step="0.01" value="1" />
+                  </div>
+
+                  <div class="control">
+                    <div class="control-row">
+                      <span>旋转</span>
+                      <span id="rotateText">0°</span>
+                    </div>
+                    <input id="rotateRange" type="range" min="-180" max="180" step="1" value="0" />
+                  </div>
+
+                  <ul class="hint-list">
+                    <li>拖动图片可调整头像位置。</li>
+                    <li>鼠标滚轮或双指触控可快速缩放。</li>
+                    <li>圆形辅助框用于模拟多数平台头像显示。</li>
+                    <li>保存时导出的是正方形图片，平台通常会自动显示为圆形。</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </section>
+
+      <section class="page" id="previewPage">
+        <div class="preview-toolbar">
+          <div>
+            <h2>多平台头像预览</h2>
+            <p style="margin:8px 0 0;color:var(--muted);line-height:1.7;">
+              以下为抽象模拟场景，并非真实平台界面复刻，用于快速判断头像在不同尺寸和场景中的可读性。
+            </p>
+          </div>
+          <div class="top-actions">
+            <a class="btn" href="#editor">返回编辑</a>
+            <button class="btn primary" id="saveBtn2" type="button">保存当前头像</button>
+          </div>
+        </div>
+
+        <div class="platform-grid" id="platformGrid"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      纯前端单文件工具 · 图片不会离开你的浏览器 · 适合直接部署到 GitHub Pages
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+
+    const els = {
+      body: document.body,
+      editorPage: $("#editorPage"),
+      previewPage: $("#previewPage"),
+      themeBtn: $("#themeBtn"),
+      fileInput: $("#fileInput"),
+      uploadZone: $("#uploadZone"),
+      canvasWrap: $("#canvasWrap"),
+      canvas: $("#editorCanvas"),
+      emptyHint: $("#emptyHint"),
+      resetBtn: $("#resetBtn"),
+      zoomRange: $("#zoomRange"),
+      rotateRange: $("#rotateRange"),
+      zoomText: $("#zoomText"),
+      rotateText: $("#rotateText"),
+      formatSelect: $("#formatSelect"),
+      sizeInput: $("#sizeInput"),
+      saveBtn: $("#saveBtn"),
+      saveBtn2: $("#saveBtn2"),
+      previewBtn: $("#previewBtn"),
+      bigAvatar: $("#bigAvatar"),
+      platformGrid: $("#platformGrid"),
+      toast: $("#toast"),
+    };
+
+    const ctx = els.canvas.getContext("2d");
+
+    const state = {
+      image: null,
+      imageName: "avatar",
+      panX: 0,
+      panY: 0,
+      zoom: 1,
+      rotate: 0,
+      baseScale: 1,
+      canvasW: 0,
+      canvasH: 0,
+      cropSize: 0,
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      avatarDataUrl: "",
+      theme: localStorage.getItem("avatarToolTheme") || "light",
+    };
+
+    function initTheme() {
+      document.documentElement.dataset.theme = state.theme;
+      els.themeBtn.textContent = state.theme === "dark" ? "切换浅色" : "切换深色";
+    }
+
+    function toggleTheme() {
+      state.theme = state.theme === "dark" ? "light" : "dark";
+      localStorage.setItem("avatarToolTheme", state.theme);
+      initTheme();
+      draw();
+    }
+
+    function toast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+    }
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function route() {
+      const hash = location.hash || "#editor";
+      if (hash === "#preview") {
+        if (!state.image && !state.avatarDataUrl) {
+          toast("请先选择并裁切一张头像");
+          location.hash = "#editor";
+          return;
+        }
+        updateAvatarDataUrl();
+        renderPlatforms();
+        els.editorPage.classList.remove("active");
+        els.previewPage.classList.add("active");
+      } else {
+        els.previewPage.classList.remove("active");
+        els.editorPage.classList.add("active");
+        setTimeout(resizeCanvas, 30);
+      }
+    }
+
+    function resizeCanvas() {
+      const rect = els.canvasWrap.getBoundingClientRect();
+      const size = Math.max(280, Math.floor(rect.width));
+      state.canvasW = size;
+      state.canvasH = size;
+      state.cropSize = Math.floor(size * 0.72);
+
+      const dpr = window.devicePixelRatio || 1;
+      els.canvas.width = Math.floor(size * dpr);
+      els.canvas.height = Math.floor(size * dpr);
+      els.canvas.style.width = size + "px";
+      els.canvas.style.height = size + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      if (state.image) {
+        computeBaseScale();
+      }
+
+      draw();
+    }
+
+    function computeBaseScale() {
+      if (!state.image) return;
+      const minSide = Math.min(state.image.naturalWidth, state.image.naturalHeight);
+      state.baseScale = state.cropSize / minSide;
+    }
+
+    function resetTransform() {
+      state.panX = 0;
+      state.panY = 0;
+      state.zoom = 1;
+      state.rotate = 0;
+      els.zoomRange.value = "1";
+      els.rotateRange.value = "0";
+      updateControlText();
+      draw();
+      updateAvatarDataUrl();
+    }
+
+    function updateControlText() {
+      els.zoomText.textContent = Math.round(state.zoom * 100) + "%";
+      els.rotateText.textContent = Math.round(state.rotate) + "°";
+    }
+
+    function draw() {
+      const w = state.canvasW;
+      const h = state.canvasH;
+      if (!w || !h) return;
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (!state.image) {
+        els.emptyHint.style.display = "grid";
+        drawCropOverlay();
+        return;
+      }
+
+      els.emptyHint.style.display = "none";
+
+      ctx.save();
+      ctx.translate(w / 2 + state.panX, h / 2 + state.panY);
+      ctx.rotate((state.rotate * Math.PI) / 180);
+      const scale = state.baseScale * state.zoom;
+      ctx.scale(scale, scale);
+      ctx.drawImage(
+        state.image,
+        -state.image.naturalWidth / 2,
+        -state.image.naturalHeight / 2
+      );
+      ctx.restore();
+
+      drawCropOverlay();
+    }
+
+    function drawCropOverlay() {
+      const w = state.canvasW;
+      const h = state.canvasH;
+      const s = state.cropSize;
+      const x = (w - s) / 2;
+      const y = (h - s) / 2;
+
+      ctx.save();
+
+      ctx.fillStyle =
+        getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#090d18"
+          ? "rgba(0,0,0,0.48)"
+          : "rgba(15,23,42,0.28)";
+
+      ctx.beginPath();
+      ctx.rect(0, 0, w, h);
+      ctx.arc(w / 2, h / 2, s / 2, 0, Math.PI * 2, true);
+      ctx.fill("evenodd");
+
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, s / 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.52)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([6, 6]);
+      ctx.strokeRect(x, y, s, s);
+
+      ctx.setLineDash([]);
+      ctx.strokeStyle = "rgba(99,102,241,0.95)";
+      ctx.lineWidth = 3;
+      const corner = 28;
+      const r = 6;
+
+      const corners = [
+        [x, y, 1, 1],
+        [x + s, y, -1, 1],
+        [x, y + s, 1, -1],
+        [x + s, y + s, -1, -1],
+      ];
+
+      for (const [cx, cy, dx, dy] of corners) {
+        ctx.beginPath();
+        ctx.moveTo(cx + dx * r, cy);
+        ctx.lineTo(cx + dx * corner, cy);
+        ctx.moveTo(cx, cy + dy * r);
+        ctx.lineTo(cx, cy + dy * corner);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function getOutputSize() {
+      const custom = parseInt(els.sizeInput.value, 10);
+      if (Number.isFinite(custom) && custom >= 64) {
+        return clamp(custom, 64, 4096);
+      }
+
+      if (!state.image) return 512;
+
+      const approx = Math.round(state.cropSize / (state.baseScale * state.zoom));
+      return clamp(approx, 64, 4096);
+    }
+
+    function renderCroppedCanvas() {
+      if (!state.image) return null;
+
+      const outSize = getOutputSize();
+      const out = document.createElement("canvas");
+      out.width = outSize;
+      out.height = outSize;
+      const octx = out.getContext("2d");
+
+      octx.clearRect(0, 0, outSize, outSize);
+
+      const k = outSize / state.cropSize;
+      const imgCenterX = state.canvasW / 2 + state.panX;
+      const imgCenterY = state.canvasH / 2 + state.panY;
+      const cropCenterX = state.canvasW / 2;
+      const cropCenterY = state.canvasH / 2;
+
+      octx.save();
+      octx.translate(
+        outSize / 2 + (imgCenterX - cropCenterX) * k,
+        outSize / 2 + (imgCenterY - cropCenterY) * k
+      );
+      octx.rotate((state.rotate * Math.PI) / 180);
+      const scale = state.baseScale * state.zoom * k;
+      octx.scale(scale, scale);
+      octx.drawImage(
+        state.image,
+        -state.image.naturalWidth / 2,
+        -state.image.naturalHeight / 2
+      );
+      octx.restore();
+
+      return out;
+    }
+
+    function formatExt(mime) {
+      if (mime === "image/jpeg") return "jpg";
+      if (mime === "image/webp") return "webp";
+      return "png";
+    }
+
+    function getDataUrl() {
+      const out = renderCroppedCanvas();
+      if (!out) return "";
+      const mime = els.formatSelect.value || "image/png";
+      if (mime === "image/png") return out.toDataURL(mime);
+      return out.toDataURL(mime, 0.92);
+    }
+
+    function updateAvatarDataUrl() {
+      if (!state.image) return;
+      state.avatarDataUrl = getDataUrl();
+
+      if (state.avatarDataUrl) {
+        els.bigAvatar.innerHTML = `<img alt="头像预览" src="${state.avatarDataUrl}">`;
+        try {
+          localStorage.setItem("avatarToolLastPreview", state.avatarDataUrl);
+        } catch (e) {}
+      }
+    }
+
+    function saveAvatar() {
+      if (!state.image) {
+        toast("请先选择一张图片");
+        return;
+      }
+
+      const out = renderCroppedCanvas();
+      if (!out) return;
+
+      const mime = els.formatSelect.value || "image/png";
+      const ext = formatExt(mime);
+      const quality = mime === "image/png" ? undefined : 0.92;
+
+      out.toBlob((blob) => {
+        if (!blob) {
+          toast("保存失败，请换一种格式试试");
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const safeName = state.imageName.replace(/\.[^.]+$/, "").replace(/[^\u4e00-\u9fa5a-zA-Z0-9_-]+/g, "_");
+        a.href = url;
+        a.download = `${safeName || "avatar"}_${out.width}x${out.height}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast("头像已保存");
+      }, mime, quality);
+    }
+
+    function loadFile(file) {
+      if (!file || !file.type.startsWith("image/")) {
+        toast("请选择有效的图片文件");
+        return;
+      }
+
+      state.imageName = file.name || "avatar";
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          state.image = img;
+          computeBaseScale();
+          resetTransform();
+          toast("图片已加载");
+        };
+        img.onerror = () => toast("图片读取失败");
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function pointerPos(e) {
+      const rect = els.canvas.getBoundingClientRect();
+      const point = e.touches ? e.touches[0] : e;
+      return {
+        x: point.clientX - rect.left,
+        y: point.clientY - rect.top,
+      };
+    }
+
+    function startDrag(e) {
+      if (!state.image) return;
+      e.preventDefault();
+      const p = pointerPos(e);
+      state.dragging = true;
+      state.lastX = p.x;
+      state.lastY = p.y;
+    }
+
+    function moveDrag(e) {
+      if (!state.dragging || !state.image) return;
+      e.preventDefault();
+      const p = pointerPos(e);
+      state.panX += p.x - state.lastX;
+      state.panY += p.y - state.lastY;
+      state.lastX = p.x;
+      state.lastY = p.y;
+      draw();
+    }
+
+    function endDrag() {
+      if (!state.dragging) return;
+      state.dragging = false;
+      updateAvatarDataUrl();
+    }
+
+    function onWheel(e) {
+      if (!state.image) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.08 : 0.08;
+      state.zoom = clamp(state.zoom + delta, 0.5, 4);
+      els.zoomRange.value = state.zoom.toFixed(2);
+      updateControlText();
+      draw();
+      clearTimeout(onWheel.timer);
+      onWheel.timer = setTimeout(updateAvatarDataUrl, 120);
+    }
+
+    function renderPlatforms() {
+      const src =
+        state.avatarDataUrl ||
+        localStorage.getItem("avatarToolLastPreview") ||
+        "";
+
+      if (!src) {
+        els.platformGrid.innerHTML = `
+          <div class="platform-card">
+            <div class="mock">暂无头像，请先返回编辑页选择图片。</div>
+          </div>
+        `;
+        return;
+      }
+
+      const img = (size = 56, cls = "circle") =>
+        `<img class="avatar ${cls}" src="${src}" alt="头像" style="width:${size}px;height:${size}px;">`;
+
+      const line = (cls = "mid") => `<div class="line ${cls}"></div>`;
+
+      const card = (name, desc, content) => `
+        <article class="platform-card">
+          <div class="platform-head">
+            <strong>${name}</strong>
+            <span>${desc}</span>
+          </div>
+          <div class="mock">${content}</div>
+        </article>
+      `;
+
+      els.platformGrid.innerHTML = [
+        card("QQ", "聊天列表", `
+          <div class="chat-row">
+            ${img(54, "rounded")}
+            <div class="grow">${line("mid")}${line("long")}</div>
+            <div class="time-dot">${line("short")}<div class="badge"></div></div>
+          </div>
+          <div class="chat-row">
+            ${img(46, "rounded")}
+            <div class="grow">${line("long")}${line("mid")}</div>
+            <div class="time-dot">${line("short")}</div>
+          </div>
+          <div class="chat-row">
+            ${img(42, "rounded")}
+            <div class="grow">${line("mid")}${line("short")}</div>
+          </div>
+        `),
+
+        card("微信", "会话场景", `
+          <div class="chat-row">
+            ${img(50, "rounded")}
+            <div class="grow">${line("mid")}${line("long")}</div>
+            <div class="time-dot">${line("short")}</div>
+          </div>
+          <div class="chat-row">
+            ${img(42, "rounded")}
+            <div class="grow">${line("long")}${line("mid")}</div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px;align-items:flex-end;">
+            ${img(38, "rounded")}
+            <div style="padding:11px 13px;border-radius:6px 16px 16px 16px;background:rgba(34,197,94,.18);width:66%;">
+              ${line("long")}
+            </div>
+          </div>
+        `),
+
+        card("Telegram", "个人资料卡", `
+          <div class="profile-cover"></div>
+          <div class="profile-body">
+            ${img(74, "circle")}
+            <div style="margin-top:12px;display:grid;gap:9px;">
+              ${line("mid")}
+              ${line("long")}
+            </div>
+            <div class="stats">
+              <div class="stat">${line("short")}${line("mid")}</div>
+              <div class="stat">${line("short")}${line("mid")}</div>
+            </div>
+          </div>
+        `),
+
+        card("Instagram", "个人主页", `
+          <div style="display:flex;align-items:center;gap:16px;">
+            ${img(76, "circle")}
+            <div class="grow">
+              ${line("mid")}
+              <div style="display:flex;gap:8px;">
+                ${line("short")}
+                ${line("short")}
+                ${line("short")}
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:grid;gap:8px;">
+            ${line("long")}
+            ${line("mid")}
+          </div>
+          <div class="ig-grid">
+            <div class="ig-cell"></div><div class="ig-cell"></div><div class="ig-cell"></div>
+            <div class="ig-cell"></div><div class="ig-cell"></div><div class="ig-cell"></div>
+          </div>
+        `),
+
+        card("X / Twitter", "个人页", `
+          <div class="profile-cover"></div>
+          <div class="profile-body">
+            ${img(78, "circle")}
+            <div style="margin-top:12px;display:grid;gap:9px;">
+              ${line("mid")}
+              ${line("long")}
+              ${line("short")}
+            </div>
+            <div style="margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:16px;display:grid;gap:8px;">
+              ${line("long")}
+              ${line("mid")}
+            </div>
+          </div>
+        `),
+
+        card("Discord", "用户卡片", `
+          <div class="discord-card">
+            <div class="discord-banner"></div>
+            <div class="discord-inner">
+              ${img(72, "circle")}
+              <div style="margin-top:12px;display:grid;gap:9px;">
+                ${line("mid")}
+                ${line("long")}
+              </div>
+              <div style="margin-top:14px;padding:12px;border-radius:14px;background:rgba(0,0,0,.08);display:grid;gap:8px;">
+                ${line("short")}
+                ${line("mid")}
+              </div>
+            </div>
+          </div>
+        `),
+
+        card("GitHub", "个人主页", `
+          <div class="github-box">
+            <div style="display:flex;align-items:center;gap:14px;">
+              ${img(82, "circle")}
+              <div class="grow">
+                ${line("mid")}
+                ${line("short")}
+              </div>
+            </div>
+            ${line("long")}
+            ${line("mid")}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="stat">${line("short")}${line("long")}</div>
+              <div class="stat">${line("short")}${line("long")}</div>
+            </div>
+          </div>
+        `),
+
+        card("B站", "个人空间", `
+          <div class="profile-cover"></div>
+          <div class="profile-body">
+            ${img(72, "circle")}
+            <div style="margin-top:12px;display:grid;gap:9px;">
+              ${line("mid")}
+              ${line("long")}
+            </div>
+            <div class="stats">
+              <div class="stat">${line("short")}${line("mid")}</div>
+              <div class="stat">${line("short")}${line("mid")}</div>
+              <div class="stat">${line("short")}${line("mid")}</div>
+            </div>
+          </div>
+        `),
+
+        card("小红书", "个人页", `
+          <div style="display:flex;align-items:center;gap:16px;">
+            ${img(76, "circle")}
+            <div class="grow">
+              ${line("mid")}
+              ${line("long")}
+              ${line("short")}
+            </div>
+          </div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            <div class="ig-cell"></div><div class="ig-cell"></div>
+            <div class="ig-cell"></div><div class="ig-cell"></div>
+          </div>
+        `),
+
+        card("抖音", "短视频主页", `
+          <div class="video-profile">
+            ${img(84, "circle")}
+            <div style="display:grid;gap:9px;justify-items:center;">
+              ${line("mid")}
+              ${line("long")}
+            </div>
+          </div>
+          <div class="video-tabs">
+            <div class="video-tile"></div>
+            <div class="video-tile"></div>
+            <div class="video-tile"></div>
+          </div>
+        `),
+      ].join("");
+    }
+
+    els.themeBtn.addEventListener("click", toggleTheme);
+
+    els.fileInput.addEventListener("change", (e) => {
+      loadFile(e.target.files[0]);
+      e.target.value = "";
+    });
+
+    els.uploadZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      els.uploadZone.classList.add("dragover");
+    });
+
+    els.uploadZone.addEventListener("dragleave", () => {
+      els.uploadZone.classList.remove("dragover");
+    });
+
+    els.uploadZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      els.uploadZone.classList.remove("dragover");
+      loadFile(e.dataTransfer.files[0]);
+    });
+
+    els.resetBtn.addEventListener("click", () => {
+      if (!state.image) {
+        toast("请先选择图片");
+        return;
+      }
+      resetTransform();
+      toast("已重置");
+    });
+
+    els.zoomRange.addEventListener("input", () => {
+      state.zoom = parseFloat(els.zoomRange.value);
+      updateControlText();
+      draw();
+    });
+
+    els.zoomRange.addEventListener("change", updateAvatarDataUrl);
+
+    els.rotateRange.addEventListener("input", () => {
+      state.rotate = parseFloat(els.rotateRange.value);
+      updateControlText();
+      draw();
+    });
+
+    els.rotateRange.addEventListener("change", updateAvatarDataUrl);
+
+    els.formatSelect.addEventListener("change", updateAvatarDataUrl);
+    els.sizeInput.addEventListener("change", updateAvatarDataUrl);
+
+    els.saveBtn.addEventListener("click", saveAvatar);
+    els.saveBtn2.addEventListener("click", saveAvatar);
+
+    els.previewBtn.addEventListener("click", () => {
+      if (!state.image) {
+        toast("请先选择一张图片");
+        return;
+      }
+      updateAvatarDataUrl();
+      location.hash = "#preview";
+    });
+
+    els.canvas.addEventListener("mousedown", startDrag);
+    window.addEventListener("mousemove", moveDrag);
+    window.addEventListener("mouseup", endDrag);
+
+    els.canvas.addEventListener("touchstart", startDrag, { passive: false });
+    window.addEventListener("touchmove", moveDrag, { passive: false });
+    window.addEventListener("touchend", endDrag);
+
+    els.canvas.addEventListener("wheel", onWheel, { passive: false });
+
+    window.addEventListener("resize", () => {
+      clearTimeout(window.__resizeTimer);
+      window.__resizeTimer = setTimeout(resizeCanvas, 100);
+    });
+
+    window.addEventListener("hashchange", route);
+
+    initTheme();
+    updateControlText();
+    resizeCanvas();
+    route();
+
+    const lastPreview = localStorage.getItem("avatarToolLastPreview");
+    if (lastPreview) {
+      state.avatarDataUrl = lastPreview;
+      els.bigAvatar.innerHTML = `<img alt="上次头像预览" src="${lastPreview}">`;
+    }
+  </script>
+</body>
+</html>
