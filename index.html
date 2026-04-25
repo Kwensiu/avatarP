@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>头像裁切预览工具</title>
+  <title>头像工具</title>
   <style>
     :root {
       --bg: #f4f7fb;
@@ -153,6 +153,7 @@
       gap: 10px;
       flex-wrap: wrap;
       justify-content: flex-end;
+      margin-left: auto;
     }
 
     .btn {
@@ -209,6 +210,35 @@
       box-shadow: none;
     }
 
+    .theme-btn {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      padding: 0;
+      border-color: transparent;
+      border-radius: 999px;
+      font-size: 20px;
+      line-height: 1;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    .theme-btn:hover,
+    .theme-btn:focus-visible,
+    .theme-btn:active {
+      transform: none;
+      border-color: transparent;
+      background: transparent;
+      box-shadow: none;
+      outline: none;
+    }
+
+    .theme-btn {
+      -webkit-tap-highlight-color: transparent;
+    }
+
     .hero {
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -234,6 +264,14 @@
       max-width: 820px;
     }
 
+    .compact-hero {
+      padding: 18px 22px;
+    }
+
+    .compact-hero h2 {
+      font-size: clamp(28px, 7vw, 56px);
+    }
+
     .privacy {
       margin-top: 16px;
       padding: 12px 14px;
@@ -251,7 +289,8 @@
 
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.2fr) 390px;
+      grid-template-columns: minmax(0, 520px);
+      justify-content: center;
       gap: 20px;
       align-items: start;
     }
@@ -285,20 +324,29 @@
     }
 
     .upload-zone {
-      border: 1.5px dashed rgba(99, 102, 241, 0.42);
-      background: rgba(99, 102, 241, 0.06);
-      border-radius: 20px;
-      padding: 22px;
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      padding: 24px;
       text-align: center;
-      margin-bottom: 18px;
       cursor: pointer;
       transition: 0.18s ease;
     }
 
-    .upload-zone:hover,
-    .upload-zone.dragover {
+    .upload-card {
+      width: min(300px, 84%);
+      border: 1.5px dashed rgba(99, 102, 241, 0.48);
+      border-radius: 20px;
+      padding: 22px;
+      transition: 0.18s ease;
+    }
+
+    .upload-zone:hover .upload-card,
+    .canvas-wrap.dragover .upload-card {
       border-color: var(--primary);
-      background: rgba(99, 102, 241, 0.11);
+      color: var(--primary);
       transform: translateY(-1px);
     }
 
@@ -351,18 +399,22 @@
 
     .empty-hint {
       position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
+      left: 50%;
+      bottom: 18px;
+      z-index: 1;
+      width: min(360px, calc(100% - 32px));
+      transform: translateX(-50%);
       text-align: center;
       color: var(--muted);
       pointer-events: none;
-      padding: 24px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      line-height: 1.6;
     }
 
     .empty-hint div {
-      max-width: 320px;
-      line-height: 1.7;
+      max-width: none;
     }
 
     .controls {
@@ -426,6 +478,7 @@
     .side-stack {
       display: grid;
       gap: 20px;
+      width: 100%;
     }
 
     .avatar-preview-main {
@@ -446,6 +499,16 @@
       place-items: center;
       color: var(--muted);
       font-size: 14px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .big-avatar:hover,
+    .big-avatar:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(99, 102, 241, 0.55);
+      box-shadow: var(--shadow);
+      outline: none;
     }
 
     .big-avatar img {
@@ -467,6 +530,61 @@
       color: var(--muted);
       line-height: 1.75;
       font-size: 14px;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.54);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .modal-overlay.active {
+      display: grid;
+    }
+
+    .crop-modal {
+      width: min(980px, 100%);
+      max-height: min(92vh, 940px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .modal-body {
+      overflow: auto;
+    }
+
+    .crop-editor-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    .preview-tip {
+      margin: -4px 0 14px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
     }
 
     .page {
@@ -731,7 +849,11 @@
       }
 
       .side-stack {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
+      }
+
+      .crop-editor-grid {
+        grid-template-columns: 1fr;
       }
 
       .platform-grid {
@@ -746,13 +868,22 @@
       }
 
       .topbar {
-        align-items: flex-start;
-        flex-direction: column;
+        align-items: center;
+        flex-direction: row;
+      }
+
+      .brand {
+        min-width: 0;
+      }
+
+      .brand p {
+        white-space: nowrap;
       }
 
       .top-actions {
-        justify-content: flex-start;
-        width: 100%;
+        justify-content: flex-end;
+        width: auto;
+        flex: 0 0 auto;
       }
 
       .hero,
@@ -797,67 +928,30 @@
       <div class="brand">
         <div class="logo" aria-hidden="true"></div>
         <div>
-          <h1>头像裁切预览工具</h1>
-          <p>本地裁切头像，并模拟多个平台展示效果</p>
+          <h1>头像工具</h1>
+          <p>裁切 · 预览 · 保存</p>
         </div>
       </div>
       <div class="top-actions">
-        <button class="btn" id="themeBtn" type="button">切换深色</button>
-        <a class="btn" href="#editor" id="goEditorBtn">编辑头像</a>
-        <a class="btn primary" href="#preview" id="goPreviewBtn">预览效果</a>
+        <button class="btn theme-btn" id="themeBtn" type="button" aria-label="切换深色">☾</button>
       </div>
     </header>
 
     <main>
       <section class="page active" id="editorPage">
-        <section class="hero">
-          <h2>裁出一个真正适合到处使用的头像</h2>
-          <p>
-            上传本地图片后，可以通过拖动、缩放、旋转调整头像位置。点击“预览效果”后，可查看头像在聊天列表、个人主页、评论区等常见场景中的展示效果。
-          </p>
-          <div class="privacy">
-            隐私提示：所有图片仅在你的浏览器本地处理，不会上传到服务器。该页面可直接部署到 GitHub Pages。
-          </div>
-        </section>
-
         <section class="layout">
-          <div class="panel">
-            <div class="panel-header">
-              <h3>头像裁切</h3>
-              <button class="btn small" id="resetBtn" type="button">重置</button>
-            </div>
-            <div class="panel-body">
-              <label class="upload-zone" id="uploadZone" for="fileInput">
-                <strong>点击选择头像图片</strong>
-                <span>支持 PNG、JPG、WebP、GIF 静态首帧等常见图片。也可以拖拽图片到这里。</span>
-              </label>
-              <input id="fileInput" type="file" accept="image/*" />
-
-              <div class="canvas-wrap" id="canvasWrap">
-                <canvas id="editorCanvas"></canvas>
-                <div class="empty-hint" id="emptyHint">
-                  <div>
-                    请先选择一张图片。<br />
-                    选择后可在此区域拖动图片位置，滚轮或下方滑杆可缩放。
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <aside class="side-stack">
             <div class="panel">
               <div class="panel-header">
-                <h3>实时预览</h3>
+                <h3>预览</h3>
               </div>
               <div class="panel-body">
                 <div class="avatar-preview-main">
-                  <div class="big-avatar" id="bigAvatar">暂无头像</div>
+                  <div class="big-avatar" id="bigAvatar" role="button" tabindex="0" aria-label="打开编辑器">点击编辑</div>
                 </div>
-
                 <div class="form-grid">
                   <div class="field">
-                    <label for="formatSelect">保存格式</label>
+                    <label for="formatSelect">格式</label>
                     <select id="formatSelect">
                       <option value="image/png">PNG</option>
                       <option value="image/jpeg">JPG</option>
@@ -865,46 +959,15 @@
                     </select>
                   </div>
                   <div class="field">
-                    <label for="sizeInput">导出尺寸，可留空</label>
-                    <input id="sizeInput" type="number" min="64" max="4096" placeholder="默认实际裁切大小" />
+                    <label for="sizeInput">尺寸</label>
+                    <input id="sizeInput" type="number" min="64" max="4096" placeholder="自动" />
                   </div>
                 </div>
 
                 <div class="action-grid">
-                  <button class="btn primary" id="saveBtn" type="button">保存头像</button>
-                  <button class="btn" id="previewBtn" type="button">预览效果</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="panel">
-              <div class="panel-header">
-                <h3>调整</h3>
-              </div>
-              <div class="panel-body">
-                <div class="controls">
-                  <div class="control">
-                    <div class="control-row">
-                      <span>缩放</span>
-                      <span id="zoomText">100%</span>
-                    </div>
-                    <input id="zoomRange" type="range" min="0.5" max="4" step="0.01" value="1" />
-                  </div>
-
-                  <div class="control">
-                    <div class="control-row">
-                      <span>旋转</span>
-                      <span id="rotateText">0°</span>
-                    </div>
-                    <input id="rotateRange" type="range" min="-180" max="180" step="1" value="0" />
-                  </div>
-
-                  <ul class="hint-list">
-                    <li>拖动图片可调整头像位置。</li>
-                    <li>鼠标滚轮或双指触控可快速缩放。</li>
-                    <li>圆形辅助框用于模拟多数平台头像显示。</li>
-                    <li>保存时导出的是正方形图片，平台通常会自动显示为圆形。</li>
-                  </ul>
+                  <button class="btn primary" id="saveBtn" type="button">保存</button>
+                  <button class="btn" id="previewBtn" type="button">预览</button>
+                  <button class="btn" id="clearBtn" type="button">清空</button>
                 </div>
               </div>
             </div>
@@ -915,14 +978,11 @@
       <section class="page" id="previewPage">
         <div class="preview-toolbar">
           <div>
-            <h2>多平台头像预览</h2>
-            <p style="margin:8px 0 0;color:var(--muted);line-height:1.7;">
-              以下为抽象模拟场景，并非真实平台界面复刻，用于快速判断头像在不同尺寸和场景中的可读性。
-            </p>
+            <h2>平台预览</h2>
           </div>
           <div class="top-actions">
-            <a class="btn" href="#editor">返回编辑</a>
-            <button class="btn primary" id="saveBtn2" type="button">保存当前头像</button>
+            <a class="btn" href="#editor">返回</a>
+            <button class="btn primary" id="saveBtn2" type="button">保存</button>
           </div>
         </div>
 
@@ -930,9 +990,61 @@
       </section>
     </main>
 
-    <footer class="footer">
-      纯前端单文件工具 · 图片不会离开你的浏览器 · 适合直接部署到 GitHub Pages
-    </footer>
+  </div>
+
+
+  <div class="modal-overlay" id="cropModal" aria-hidden="true">
+    <section class="panel crop-modal" role="dialog" aria-modal="true" aria-labelledby="cropModalTitle">
+      <div class="panel-header">
+        <h3 id="cropModalTitle">编辑头像</h3>
+        <div class="top-actions">
+          <button class="btn small" id="resetBtn" type="button">清空</button>
+          <button class="btn small" id="closeCropModalBtn" type="button" aria-label="关闭">关闭</button>
+        </div>
+      </div>
+      <div class="panel-body modal-body">
+        <div class="crop-editor-grid">
+          <div>
+            <input id="fileInput" type="file" accept="image/*" />
+
+            <div class="canvas-wrap" id="canvasWrap">
+              <canvas id="editorCanvas"></canvas>
+              <label class="upload-zone" id="uploadZone" for="fileInput">
+                <span class="upload-card">
+                  <strong>选择图片</strong>
+                  <span>或拖到这里</span>
+                </span>
+              </label>
+              <div class="empty-hint" id="emptyHint">
+                <div>拖动 · 缩放 · 旋转</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="control">
+              <div class="control-row">
+                <span>缩放</span>
+                <span id="zoomText">100%</span>
+              </div>
+              <input id="zoomRange" type="range" min="0.5" max="4" step="0.01" value="1" />
+            </div>
+
+            <div class="control">
+              <div class="control-row">
+                <span>旋转</span>
+                <span id="rotateText">0°</span>
+              </div>
+              <input id="rotateRange" type="range" min="-180" max="180" step="1" value="0" />
+            </div>
+
+            <div class="modal-actions">
+              <button class="btn primary" id="doneCropBtn" type="button">完成</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -960,7 +1072,11 @@
       saveBtn: $("#saveBtn"),
       saveBtn2: $("#saveBtn2"),
       previewBtn: $("#previewBtn"),
+      clearBtn: $("#clearBtn"),
       bigAvatar: $("#bigAvatar"),
+      cropModal: $("#cropModal"),
+      closeCropModalBtn: $("#closeCropModalBtn"),
+      doneCropBtn: $("#doneCropBtn"),
       platformGrid: $("#platformGrid"),
       toast: $("#toast"),
     };
@@ -979,15 +1095,27 @@
       canvasH: 0,
       cropSize: 0,
       dragging: false,
+      gestureMode: "none",
       lastX: 0,
       lastY: 0,
+      startDistance: 0,
+      startAngle: 0,
+      startZoom: 1,
+      startRotate: 0,
+      startPanX: 0,
+      startPanY: 0,
+      startCenterX: 0,
+      startCenterY: 0,
       avatarDataUrl: "",
       theme: localStorage.getItem("avatarToolTheme") || "light",
     };
 
     function initTheme() {
       document.documentElement.dataset.theme = state.theme;
-      els.themeBtn.textContent = state.theme === "dark" ? "切换浅色" : "切换深色";
+      const isDark = state.theme === "dark";
+      els.themeBtn.textContent = isDark ? "☀" : "☾";
+      els.themeBtn.setAttribute("aria-label", isDark ? "切换浅色" : "切换深色");
+      els.themeBtn.title = isDark ? "浅色" : "深色";
     }
 
     function toggleTheme() {
@@ -1004,6 +1132,23 @@
       toast.timer = setTimeout(() => els.toast.classList.remove("show"), 1800);
     }
 
+    function openCropModal() {
+      els.cropModal.classList.add("active");
+      els.cropModal.setAttribute("aria-hidden", "false");
+      els.body.classList.add("modal-open");
+      setTimeout(() => {
+        resizeCanvas();
+        els.canvas.focus();
+      }, 30);
+    }
+
+    function closeCropModal() {
+      els.cropModal.classList.remove("active");
+      els.cropModal.setAttribute("aria-hidden", "true");
+      els.body.classList.remove("modal-open");
+      updateAvatarDataUrl();
+    }
+
     function clamp(n, min, max) {
       return Math.max(min, Math.min(max, n));
     }
@@ -1012,7 +1157,7 @@
       const hash = location.hash || "#editor";
       if (hash === "#preview") {
         if (!state.image && !state.avatarDataUrl) {
-          toast("请先选择并裁切一张头像");
+          toast("先选图片");
           location.hash = "#editor";
           return;
         }
@@ -1066,6 +1211,33 @@
       updateAvatarDataUrl();
     }
 
+    function clearAvatar() {
+      state.image = null;
+      state.imageName = "avatar";
+      state.avatarDataUrl = "";
+      state.dragging = false;
+      state.gestureMode = "none";
+      state.panX = 0;
+      state.panY = 0;
+      state.zoom = 1;
+      state.rotate = 0;
+      state.baseScale = 1;
+      els.fileInput.value = "";
+      els.sizeInput.value = "";
+      els.zoomRange.value = "1";
+      els.rotateRange.value = "0";
+      els.bigAvatar.textContent = "点击编辑";
+      els.platformGrid.innerHTML = "";
+      localStorage.removeItem("avatarToolLastPreview");
+      updateControlText();
+      draw();
+    }
+
+    function clearStartupCache() {
+      localStorage.removeItem("avatarToolLastPreview");
+      sessionStorage.clear();
+    }
+
     function updateControlText() {
       els.zoomText.textContent = Math.round(state.zoom * 100) + "%";
       els.rotateText.textContent = Math.round(state.rotate) + "°";
@@ -1079,12 +1251,13 @@
       ctx.clearRect(0, 0, w, h);
 
       if (!state.image) {
-        els.emptyHint.style.display = "grid";
-        drawCropOverlay();
+        els.emptyHint.style.display = "block";
+        els.uploadZone.style.display = "grid";
         return;
       }
 
       els.emptyHint.style.display = "none";
+      els.uploadZone.style.display = "none";
 
       ctx.save();
       ctx.translate(w / 2 + state.panX, h / 2 + state.panY);
@@ -1223,16 +1396,14 @@
       state.avatarDataUrl = getDataUrl();
 
       if (state.avatarDataUrl) {
-        els.bigAvatar.innerHTML = `<img alt="头像预览" src="${state.avatarDataUrl}">`;
-        try {
-          localStorage.setItem("avatarToolLastPreview", state.avatarDataUrl);
-        } catch (e) {}
+        els.bigAvatar.innerHTML = `<img alt="头像" src="${state.avatarDataUrl}">`;
       }
     }
 
     function saveAvatar() {
       if (!state.image) {
-        toast("请先选择一张图片");
+        toast("先选图片");
+        openCropModal();
         return;
       }
 
@@ -1245,7 +1416,7 @@
 
       out.toBlob((blob) => {
         if (!blob) {
-          toast("保存失败，请换一种格式试试");
+          toast("保存失败");
           return;
         }
 
@@ -1258,13 +1429,13 @@
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast("头像已保存");
+        toast("已保存");
       }, mime, quality);
     }
 
     function loadFile(file) {
       if (!file || !file.type.startsWith("image/")) {
-        toast("请选择有效的图片文件");
+        toast("请选择图片");
         return;
       }
 
@@ -1277,46 +1448,147 @@
           state.image = img;
           computeBaseScale();
           resetTransform();
-          toast("图片已加载");
+          toast("已加载");
         };
-        img.onerror = () => toast("图片读取失败");
+        img.onerror = () => toast("读取失败");
         img.src = reader.result;
       };
       reader.readAsDataURL(file);
     }
 
-    function pointerPos(e) {
+    function pointFromTouch(touch) {
       const rect = els.canvas.getBoundingClientRect();
-      const point = e.touches ? e.touches[0] : e;
       return {
-        x: point.clientX - rect.left,
-        y: point.clientY - rect.top,
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top,
       };
+    }
+
+    function pointerPos(e) {
+      return pointFromTouch(e.touches ? e.touches[0] : e);
+    }
+
+    function touchDistance(touches) {
+      const firstPoint = pointFromTouch(touches[0]);
+      const secondPoint = pointFromTouch(touches[1]);
+      return Math.hypot(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y);
+    }
+
+    function touchAngle(touches) {
+      const firstPoint = pointFromTouch(touches[0]);
+      const secondPoint = pointFromTouch(touches[1]);
+      return (Math.atan2(secondPoint.y - firstPoint.y, secondPoint.x - firstPoint.x) * 180) / Math.PI;
+    }
+
+    function touchCenter(touches) {
+      const firstPoint = pointFromTouch(touches[0]);
+      const secondPoint = pointFromTouch(touches[1]);
+      return {
+        x: (firstPoint.x + secondPoint.x) / 2,
+        y: (firstPoint.y + secondPoint.y) / 2,
+      };
+    }
+
+    function normalizeRotate(degrees) {
+      const result = ((degrees + 180) % 360 + 360) % 360 - 180;
+      return result === -180 ? 180 : result;
+    }
+
+    function syncControlValues() {
+      els.zoomRange.value = state.zoom.toFixed(2);
+      els.rotateRange.value = Math.round(state.rotate).toString();
+      updateControlText();
+    }
+
+    function startGesture(e) {
+      const touches = e.touches;
+      state.dragging = true;
+
+      if (touches.length >= 2) {
+        const center = touchCenter(touches);
+        state.gestureMode = "pinch";
+        state.startDistance = touchDistance(touches);
+        state.startAngle = touchAngle(touches);
+        state.startZoom = state.zoom;
+        state.startRotate = state.rotate;
+        state.startPanX = state.panX;
+        state.startPanY = state.panY;
+        state.startCenterX = center.x;
+        state.startCenterY = center.y;
+        return;
+      }
+
+      const point = pointerPos(e);
+      state.gestureMode = "pan";
+      state.lastX = point.x;
+      state.lastY = point.y;
     }
 
     function startDrag(e) {
       if (!state.image) return;
       e.preventDefault();
-      const p = pointerPos(e);
+
+      if (e.touches) {
+        startGesture(e);
+        return;
+      }
+
+      const point = pointerPos(e);
       state.dragging = true;
-      state.lastX = p.x;
-      state.lastY = p.y;
+      state.gestureMode = "pan";
+      state.lastX = point.x;
+      state.lastY = point.y;
     }
 
     function moveDrag(e) {
       if (!state.dragging || !state.image) return;
       e.preventDefault();
-      const p = pointerPos(e);
-      state.panX += p.x - state.lastX;
-      state.panY += p.y - state.lastY;
-      state.lastX = p.x;
-      state.lastY = p.y;
+
+      if (e.touches && e.touches.length >= 2) {
+        if (state.gestureMode !== "pinch") {
+          startGesture(e);
+        }
+
+        const center = touchCenter(e.touches);
+        const distance = touchDistance(e.touches);
+        const angle = touchAngle(e.touches);
+        const scale = state.startDistance ? distance / state.startDistance : 1;
+
+        state.zoom = clamp(state.startZoom * scale, 0.5, 4);
+        state.rotate = normalizeRotate(state.startRotate + angle - state.startAngle);
+        state.panX = state.startPanX + center.x - state.startCenterX;
+        state.panY = state.startPanY + center.y - state.startCenterY;
+        syncControlValues();
+        draw();
+        return;
+      }
+
+      if (e.touches && state.gestureMode !== "pan") {
+        startGesture(e);
+        return;
+      }
+
+      const point = pointerPos(e);
+      state.panX += point.x - state.lastX;
+      state.panY += point.y - state.lastY;
+      state.lastX = point.x;
+      state.lastY = point.y;
       draw();
     }
 
-    function endDrag() {
+    function endDrag(e) {
       if (!state.dragging) return;
+
+      if (e && e.touches && e.touches.length === 1) {
+        const point = pointerPos(e);
+        state.gestureMode = "pan";
+        state.lastX = point.x;
+        state.lastY = point.y;
+        return;
+      }
+
       state.dragging = false;
+      state.gestureMode = "none";
       updateAvatarDataUrl();
     }
 
@@ -1333,15 +1605,12 @@
     }
 
     function renderPlatforms() {
-      const src =
-        state.avatarDataUrl ||
-        localStorage.getItem("avatarToolLastPreview") ||
-        "";
+      const src = state.avatarDataUrl || "";
 
       if (!src) {
         els.platformGrid.innerHTML = `
           <div class="platform-card">
-            <div class="mock">暂无头像，请先返回编辑页选择图片。</div>
+            <div class="mock">暂无头像，请先返回页选择图片。</div>
           </div>
         `;
         return;
@@ -1536,33 +1805,58 @@
 
     els.themeBtn.addEventListener("click", toggleTheme);
 
+    els.bigAvatar.addEventListener("click", openCropModal);
+
+    els.bigAvatar.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openCropModal();
+      }
+    });
+
+    els.closeCropModalBtn.addEventListener("click", closeCropModal);
+    els.doneCropBtn.addEventListener("click", closeCropModal);
+
+    els.cropModal.addEventListener("click", (e) => {
+      if (e.target === els.cropModal) {
+        closeCropModal();
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && els.cropModal.classList.contains("active")) {
+        closeCropModal();
+      }
+    });
+
     els.fileInput.addEventListener("change", (e) => {
       loadFile(e.target.files[0]);
       e.target.value = "";
     });
 
-    els.uploadZone.addEventListener("dragover", (e) => {
+    els.canvasWrap.addEventListener("dragover", (e) => {
       e.preventDefault();
-      els.uploadZone.classList.add("dragover");
+      els.canvasWrap.classList.add("dragover");
     });
 
-    els.uploadZone.addEventListener("dragleave", () => {
-      els.uploadZone.classList.remove("dragover");
+    els.canvasWrap.addEventListener("dragleave", () => {
+      els.canvasWrap.classList.remove("dragover");
     });
 
-    els.uploadZone.addEventListener("drop", (e) => {
+    els.canvasWrap.addEventListener("drop", (e) => {
       e.preventDefault();
-      els.uploadZone.classList.remove("dragover");
+      els.canvasWrap.classList.remove("dragover");
       loadFile(e.dataTransfer.files[0]);
     });
 
     els.resetBtn.addEventListener("click", () => {
-      if (!state.image) {
-        toast("请先选择图片");
-        return;
-      }
-      resetTransform();
-      toast("已重置");
+      clearAvatar();
+      toast("已清空");
+    });
+
+    els.clearBtn.addEventListener("click", () => {
+      clearAvatar();
+      toast("已清空");
     });
 
     els.zoomRange.addEventListener("input", () => {
@@ -1589,7 +1883,8 @@
 
     els.previewBtn.addEventListener("click", () => {
       if (!state.image) {
-        toast("请先选择一张图片");
+        toast("先选图片");
+        openCropModal();
         return;
       }
       updateAvatarDataUrl();
@@ -1603,6 +1898,7 @@
     els.canvas.addEventListener("touchstart", startDrag, { passive: false });
     window.addEventListener("touchmove", moveDrag, { passive: false });
     window.addEventListener("touchend", endDrag);
+    window.addEventListener("touchcancel", endDrag);
 
     els.canvas.addEventListener("wheel", onWheel, { passive: false });
 
@@ -1613,16 +1909,11 @@
 
     window.addEventListener("hashchange", route);
 
+    clearStartupCache();
     initTheme();
     updateControlText();
     resizeCanvas();
     route();
-
-    const lastPreview = localStorage.getItem("avatarToolLastPreview");
-    if (lastPreview) {
-      state.avatarDataUrl = lastPreview;
-      els.bigAvatar.innerHTML = `<img alt="上次头像预览" src="${lastPreview}">`;
-    }
   </script>
 </body>
 </html>
